@@ -1,0 +1,66 @@
+void join(char *nome_arq_dept, char *nome_arq_funcionarios, char *nome_arq_join) {
+    // 1. Contar quantos departamentos existem no arquivo para alocar memória
+    FILE *f_dept = fopen(nome_arq_dept, "r");
+    if (f_dept == NULL) {
+        printf("Erro ao abrir arquivo de departamentos.\n");
+        return;
+    }
+
+    int num_depts = 0;
+    TDepartamento *dept_temp;
+    while ((dept_temp = le_departamento(f_dept)) != NULL) {
+        num_depts++;
+        free(dept_temp);
+    }
+    fclose(f_dept);
+
+    // 2. Alocar um array de ponteiros para armazenar os departamentos
+    TDepartamento **depts = (TDepartamento **) malloc(num_depts * sizeof(TDepartamento *));
+    
+    // Ler os departamentos e armazená-los no array
+    f_dept = fopen(nome_arq_dept, "r");
+    for (int i = 0; i < num_depts; i++) {
+        depts[i] = le_departamento(f_dept);
+    }
+    fclose(f_dept);
+
+    // 3. Abrir o arquivo de funcionários e o arquivo de saída (join)
+    FILE *f_func = fopen(nome_arq_funcionarios, "r");
+    FILE *f_join = fopen(nome_arq_join, "w");
+
+    if (f_func == NULL || f_join == NULL) {
+        printf("Erro ao abrir arquivos de funcionarios ou de saida.\n");
+        // Liberar memória alocada antes de sair
+        for (int i = 0; i < num_depts; i++) free(depts[i]);
+        free(depts);
+        return;
+    }
+
+    // 4. Realizar a junção (Join)
+    TFuncionario *func;
+    while ((func = le_funcionario(f_func)) != NULL) {
+        // Para cada funcionário, procura o departamento correspondente
+        for (int i = 0; i < num_depts; i++) {
+            if (depts[i]->cod_dept == func->cod_dept) {
+                // Escreve no arquivo de saída no formato:
+                // cod_dept;sala;nome_dept;cod_func;nome_func;
+                fprintf(f_join, "%d;%d;%s;%d;%s;\n", 
+                        depts[i]->cod_dept, 
+                        depts[i]->sala, 
+                        depts[i]->nome, 
+                        func->cod_func, 
+                        func->nome);
+            }
+        }
+        free(func);
+    }
+
+    // 5. Fechar os arquivos e liberar a memória
+    fclose(f_func);
+    fclose(f_join);
+
+    for (int i = 0; i < num_depts; i++) {
+        free(depts[i]);
+    }
+    free(depts);
+}
